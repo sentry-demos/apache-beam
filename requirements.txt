@@ -1,0 +1,2 @@
+sentry_sdk==0.13.1
+apache-beam==2.15.0

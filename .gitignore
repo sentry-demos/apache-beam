@@ -1,0 +1,8 @@
+.venv
+
+# Ignore Visual Studio Code files.
+**/.vscode/**/*
+
+# Ignore MacOSX files.
+**/.DS_Store/**/*
+**/.DS_Store
