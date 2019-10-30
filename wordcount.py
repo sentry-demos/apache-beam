@@ -24,7 +24,9 @@ from __future__ import absolute_import
 import argparse
 import logging
 import re
+import os
 
+from dotenv import load_dotenv
 from past.builtins import unicode
 
 import apache_beam as beam
@@ -35,104 +37,133 @@ from apache_beam.metrics.metric import MetricsFilter
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 
+import sentry_sdk
+from sentry_sdk import configure_scope
+from sentry_sdk import add_breadcrumb
+from sentry_sdk.integrations.beam import BeamIntegration
 
 class WordExtractingDoFn(beam.DoFn):
-  """Parse each line of input text into words."""
+    """Parse each line of input text into words."""
 
-  def __init__(self):
-    beam.DoFn.__init__(self)
-    self.words_counter = Metrics.counter(self.__class__, 'words')
-    self.word_lengths_counter = Metrics.counter(self.__class__, 'word_lengths')
-    self.word_lengths_dist = Metrics.distribution(
-        self.__class__, 'word_len_dist')
-    self.empty_line_counter = Metrics.counter(self.__class__, 'empty_lines')
+    def __init__(self):
+        beam.DoFn.__init__(self)
+        self.words_counter = Metrics.counter(self.__class__, "words")
+        self.word_lengths_counter = Metrics.counter(self.__class__, "word_lengths")
+        self.word_lengths_dist = Metrics.distribution(self.__class__, "word_len_dist")
+        self.empty_line_counter = Metrics.counter(self.__class__, "empty_lines")
 
-  def process(self, element):
-    """Returns an iterator over the words of this element.
+    def process(self, element):
+        """Returns an iterator over the words of this element.
 
-    The element is a line of text.  If the line is blank, note that, too.
+        The element is a line of text.  If the line is blank, note that, too.
 
-    Args:
-      element: the element being processed
+        Args:
+        element: the element being processed
 
-    Returns:
-      The processed element.
-    """
-    text_line = element.strip()
-    if not text_line:
-      self.empty_line_counter.inc(1)
-    words = re.findall(r'[\w\']+', text_line, re.UNICODE)
-    for w in words:
-      self.words_counter.inc()
-      self.word_lengths_counter.inc(len(w))
-      self.word_lengths_dist.update(len(w))
-    return words
+        Returns:
+        The processed element.
+        """
+
+        add_breadcrumb(
+            level="info",
+            message="processed {}".format(element)
+        )
+
+        text_line = element.strip()
+        if not text_line:
+            self.empty_line_counter.inc(1)
+        words = re.findall(r"[\w\']+", text_line, re.UNICODE)
+
+        # ERROR HERE
+        if "Beam SDK" in text_line:
+            l = 3 / 0
+
+        for w in words:
+            self.words_counter.inc()
+            self.word_lengths_counter.inc(len(w))
+            self.word_lengths_dist.update(len(w))
+        return words
 
 
 def run(argv=None, save_main_session=True):
-  """Main entry point; defines and runs the wordcount pipeline."""
-  parser = argparse.ArgumentParser()
-  parser.add_argument('--input',
-                      dest='input',
-                      default='gs://dataflow-samples/shakespeare/kinglear.txt',
-                      help='Input file to process.')
-  parser.add_argument('--output',
-                      dest='output',
-                      required=True,
-                      help='Output file to write results to.')
-  known_args, pipeline_args = parser.parse_known_args(argv)
+    SENTRY_DSN = os.getenv("SENTRY_DSN")
 
-  # We use the save_main_session option because one or more DoFn's in this
-  # workflow rely on global context (e.g., a module imported at module level).
-  pipeline_options = PipelineOptions(pipeline_args)
-  pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
-  p = beam.Pipeline(options=pipeline_options)
+    sentry_sdk.init(SENTRY_DSN, integrations=[BeamIntegration()])
 
-  # Read the text file[pattern] into a PCollection.
-  lines = p | 'read' >> ReadFromText(known_args.input)
+    """Main entry point; defines and runs the wordcount pipeline."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--input",
+        dest="input",
+        default="gs://dataflow-samples/shakespeare/kinglear.txt",
+        help="Input file to process.",
+    )
+    parser.add_argument(
+        "--output",
+        dest="output",
+        required=True,
+        help="Output file to write results to.",
+    )
+    known_args, pipeline_args = parser.parse_known_args(argv)
 
-  # Count the occurrences of each word.
-  def count_ones(word_ones):
-    (word, ones) = word_ones
-    return (word, sum(ones))
+    with configure_scope() as scope:
+        scope.set_tag("input", known_args.input)
+        scope.set_tag("output", known_args.output)
 
-  counts = (lines
-            | 'split' >> (beam.ParDo(WordExtractingDoFn())
-                          .with_output_types(unicode))
-            | 'pair_with_one' >> beam.Map(lambda x: (x, 1))
-            | 'group' >> beam.GroupByKey()
-            | 'count' >> beam.Map(count_ones))
+    # We use the save_main_session option because one or more DoFn's in this
+    # workflow rely on global context (e.g., a module imported at module level).
+    pipeline_options = PipelineOptions(pipeline_args)
+    pipeline_options.view_as(SetupOptions).save_main_session = save_main_session
+    p = beam.Pipeline(options=pipeline_options)
 
-  # Format the counts into a PCollection of strings.
-  def format_result(word_count):
-    (word, count) = word_count
-    return '%s: %d' % (word, count)
+    # Read the text file[pattern] into a PCollection.
+    lines = p | "read" >> ReadFromText(known_args.input)
 
-  output = counts | 'format' >> beam.Map(format_result)
+    # Count the occurrences of each word.
+    def count_ones(word_ones):
+        (word, ones) = word_ones
+        return (word, sum(ones))
 
-  # Write the output using a "Write" transform that has side effects.
-  # pylint: disable=expression-not-assigned
-  output | 'write' >> WriteToText(known_args.output)
+    counts = (
+        lines
+        | "split" >> (beam.ParDo(WordExtractingDoFn()).with_output_types(unicode))
+        | "pair_with_one" >> beam.Map(lambda x: (x, 1))
+        | "group" >> beam.GroupByKey()
+        | "count" >> beam.Map(count_ones)
+    )
 
-  result = p.run()
-  result.wait_until_finish()
+    # Format the counts into a PCollection of strings.
+    def format_result(word_count):
+        (word, count) = word_count
+        return "%s: %d" % (word, count)
 
-  # Do not query metrics when creating a template which doesn't run
-  if (not hasattr(result, 'has_job')    # direct runner
-      or result.has_job):               # not just a template creation
-    empty_lines_filter = MetricsFilter().with_name('empty_lines')
-    query_result = result.metrics().query(empty_lines_filter)
-    if query_result['counters']:
-      empty_lines_counter = query_result['counters'][0]
-      logging.info('number of empty lines: %d', empty_lines_counter.result)
+    output = counts | "format" >> beam.Map(format_result)
 
-    word_lengths_filter = MetricsFilter().with_name('word_len_dist')
-    query_result = result.metrics().query(word_lengths_filter)
-    if query_result['distributions']:
-      word_lengths_dist = query_result['distributions'][0]
-      logging.info('average word length: %d', word_lengths_dist.result.mean)
+    # Write the output using a "Write" transform that has side effects.
+    # pylint: disable=expression-not-assigned
+    output | "write" >> WriteToText(known_args.output)
+
+    result = p.run()
+    result.wait_until_finish()
+
+    # Do not query metrics when creating a template which doesn't run
+    if (
+        not hasattr(result, "has_job") or result.has_job  # direct runner
+    ):  # not just a template creation
+        empty_lines_filter = MetricsFilter().with_name("empty_lines")
+        query_result = result.metrics().query(empty_lines_filter)
+        if query_result["counters"]:
+            empty_lines_counter = query_result["counters"][0]
+            logging.info("number of empty lines: %d", empty_lines_counter.result)
+
+        word_lengths_filter = MetricsFilter().with_name("word_len_dist")
+        query_result = result.metrics().query(word_lengths_filter)
+        if query_result["distributions"]:
+            word_lengths_dist = query_result["distributions"][0]
+            logging.info("average word length: %d", word_lengths_dist.result.mean)
 
 
-if __name__ == '__main__':
-  logging.getLogger().setLevel(logging.INFO)
-  run()
+if __name__ == "__main__":
+    load_dotenv()
+    logging.getLogger().setLevel(logging.INFO)
+    run()
