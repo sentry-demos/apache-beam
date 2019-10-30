@@ -79,3 +79,8 @@ You can upgrade pip using
 ```bash
 pip install --upgrade pip
 ```
+
+## Docs
+
+- [Sentry Beam Integration Documentation](https://docs.sentry.io/platforms/python/beam/)
+- [Apache Beam Documentation](https://beam.apache.org/documentation/)
