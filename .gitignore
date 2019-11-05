@@ -1,6 +1,12 @@
+# Python
 .venv
-results/**/*
+results
 __pycache__/**/*
+
+# Java
+.java-version
+target
+counts-*
 
 # Ignore Visual Studio Code files.
 **/.vscode/**/*
