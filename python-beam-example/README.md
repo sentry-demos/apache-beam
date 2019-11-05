@@ -1,5 +1,9 @@
 # python-word-count
 
+This demo covers using Apache Beam with the Python SDK with a sample wordcount application.
+
+This demo uses `sentry-sdk` 0.13.1.
+
 ## First Time Setup
 
 The Beam SDK requires Python 2 users to use Python 2.7 and Python 3 users to use Python 3.5 or higher. For this demo, we will be using Python 3.
