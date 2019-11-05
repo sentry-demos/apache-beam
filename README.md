@@ -6,6 +6,8 @@ You can navigate to the java and python folders to run the respective demos.
 
 This demo uses `apache-beam` 2.16.0 and uses Beam's local runner.
 
+- [Python Demo](python-beam-example/README.md)
+
 ## Docs
 
 - [Sentry Beam Python Integration Documentation](https://docs.sentry.io/platforms/python/beam/)
