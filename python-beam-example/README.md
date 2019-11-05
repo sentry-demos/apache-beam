@@ -59,7 +59,7 @@ source .venv/bin/activate
 Run the example wordcount application.
 
 ```bash
-python3 wordcount.py --input README.md --output results/counts
+python wordcount.py --input README.md --output results/counts
 ```
 
 It should fail and an error should show up in your Sentry project.
