@@ -18,7 +18,7 @@ Clone the repository and cd into it.
 
 ```bash
 git clone git@github.com:sentry-demos/apache-beam.git
-cd apache-beam
+cd apache-beam/python-beam-example
 ```
 
 Setup and activate a Python3 environment.
