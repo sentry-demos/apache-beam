@@ -2,6 +2,8 @@
 
 This demo covers using [Apache Beam](https://beam.apache.org/) with [Scio](https://spotify.github.io/scio/), the Scala API for Beam.
 
+It uses `sentry-logback` 1.7.27, Scio 0.7.4 and Apache Beam 2.11.0 
+
 ## First Time Setup
 
 Scio requires Java 8. It is recommended that you use [jenv](https://www.jenv.be/) to manage your Java versions.

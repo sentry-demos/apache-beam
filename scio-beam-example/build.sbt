@@ -38,7 +38,8 @@ lazy val root: Project = project
       "org.apache.beam" % "beam-runners-direct-java" % beamVersion,
       // optional dataflow runner
       // "org.apache.beam" % "beam-runners-google-cloud-dataflow-java" % beamVersion,
-      "org.slf4j" % "slf4j-simple" % "1.7.25"
+      "org.slf4j" % "slf4j-simple" % "1.7.25",
+      "io.sentry" % "sentry-log4j" % "1.7.27",
     )
   )
   .enablePlugins(PackPlugin)

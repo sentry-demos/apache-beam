@@ -1,13 +1,21 @@
 package example
 
+import io.sentry.Sentry
+
+import org.slf4j.LoggerFactory
+
 import com.spotify.scio._
 
 object WordCount {
+  private val logger = LoggerFactory.getLogger(this.getClass)
+
   def main(cmdlineArgs: Array[String]): Unit = {
-    val (sc, _) = ContextAndArgs(cmdlineArgs)
+    val (sc, args) = ContextAndArgs(cmdlineArgs)
 
     val input = "README.md"
     val output = "dist/output.txt"
+
+    logger.error("ERROR HERE");
 
     sc.textFile(input)
       .map(_.trim)
