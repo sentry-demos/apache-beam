@@ -19,7 +19,16 @@ object WordCount {
 
     sc.textFile(input)
       .map(_.trim)
-      .flatMap(_.split("[^a-zA-Z']+").filter(_.nonEmpty))
+      .flatMap(_.split("[^a-zA-Z']+").filter(a => {
+        try
+          1 / 0
+        catch {
+          case e: Exception =>
+            Sentry.capture(e)
+        }
+
+        a.nonEmpty
+      }))
       .countByValue
       .map(t => t._1 + ": " + t._2)
       .saveAsTextFile(output)
