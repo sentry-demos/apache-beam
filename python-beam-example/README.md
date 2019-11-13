@@ -2,7 +2,7 @@
 
 This demo covers using Apache Beam with the Python SDK with a sample wordcount application.
 
-This demo uses `sentry-sdk` 0.13.1.
+This demo uses `sentry-sdk` 0.13.1 and `apache-beam` 2.16.0 and uses Beam's direct runner.
 
 ## First Time Setup
 

@@ -8,6 +8,10 @@ __pycache__/**/*
 target
 counts-*
 sentry-java
+.idea
+.bigquery
+.repl
+dist/
 
 # Ignore Visual Studio Code files.
 **/.vscode/**/*
